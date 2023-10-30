@@ -1,15 +1,11 @@
-import User from "@/models/user";
 import { Router } from "express";
+
+import { CreateUserSchema } from "@/types/user";
+import { validate } from "@/middleware/validator";
+import { create } from "@/controllers/user";
 
 const router = Router();
 
-router.post("/create", async (req, res) => {
-  const { name, email, password } = req.body;
-
-  const user = await User.create({ email, password, name });
-
-  res.json(user);
-
-})
+router.post("/create", validate(CreateUserSchema), create);
 
 export default router;

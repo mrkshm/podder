@@ -1,16 +1,25 @@
-import { Model, ObjectId, Schema, model } from "mongoose";
+import { Model, Schema, model } from "mongoose";
+import { ObjectId } from "@/utils/object-id-util";
+import { z } from "zod";
 
-interface UserDocument {
-  name: string;
-  email: string;
-  password: string;
-  verified: boolean;
-  avatar?: { url: string; publicId: string; };
-  tokens: string[];
-  favorites: ObjectId[];
-  followers: ObjectId[];
-  followings: ObjectId[];
-}
+const UserDocumentSchema = z.object({
+  name: z.string(),
+  email: z.string().email(),
+  password: z.string().min(4),
+  verified: z.boolean().default(false),
+  avatar: z.optional(
+    z.object({
+      url: z.string(),
+      publicId: z.string(),
+    })
+  ),
+  tokens: z.array(z.string()),
+  favorites: z.array(z.instanceof(ObjectId)),
+  followers: z.array(z.instanceof(ObjectId)),
+  followings: z.array(z.instanceof(ObjectId)),
+});
+
+type UserDocument = z.infer<typeof UserDocumentSchema>;
 
 const userSchema = new Schema<UserDocument>({
   name: {
