@@ -9,3 +9,29 @@ export const CreateUserSchema = z.object({
   })
 })
 export type CreateUser = Request & z.infer<typeof CreateUserSchema>;
+
+export interface VerifyEmailRequest extends Request {
+  body: {
+    userId: string;
+    token: string;
+  }
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      user: {
+        id: any,
+        name: string,
+        email: string,
+        verified: boolean,
+        avatar?: string,
+        followers: number,
+        followings: number
+      };
+      token: string;
+    }
+  }
+}
+
+

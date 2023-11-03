@@ -1,6 +1,7 @@
 import { Model, Schema, model } from "mongoose";
-import { ObjectId } from "@/utils/object-id-util";
+import { ObjectId, ObjectIdType } from "@/utils/object-id-util";
 import { z } from "zod";
+import { compare, hash } from "bcrypt";
 
 const UserDocumentSchema = z.object({
   name: z.string(),
@@ -19,9 +20,17 @@ const UserDocumentSchema = z.object({
   followings: z.array(z.instanceof(ObjectId)),
 });
 
-type UserDocument = z.infer<typeof UserDocumentSchema>;
+export type UserDocument = z.infer<typeof UserDocumentSchema>;
 
-const userSchema = new Schema<UserDocument>({
+export interface UserDocumentWithId extends UserDocument {
+  _id: any;
+}
+
+interface Methods {
+  comparePassword(password: string): Promise<boolean>
+}
+
+const userSchema = new Schema<UserDocument, {}, Methods>({
   name: {
     type: String,
     required: true,
@@ -60,4 +69,14 @@ const userSchema = new Schema<UserDocument>({
   tokens: [String]
 }, { timestamps: true });
 
-export default model("User", userSchema) as Model<UserDocument>;
+userSchema.pre('save', async function(next) {
+  if (this.isModified("password")) {
+    this.password = await hash(this.password, 10)
+  }
+})
+
+userSchema.methods.comparePassword = function(password) {
+  return compare(password, this.password)
+}
+
+export default model("User", userSchema) as Model<UserDocument, {}, Methods>;
