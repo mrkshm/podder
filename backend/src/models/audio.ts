@@ -2,25 +2,35 @@ import { CategoryValidationSchema, categories } from "@/utils/audio-category";
 import { Model, models, model, ObjectId, Schema } from "mongoose";
 import { z } from "zod";
 
-const AudioValidation = z.object({
-    title: z.string(),
-    about: z.string(),
-    owner: z.custom<ObjectId>(),
-    file: z.object({
-        url: z.string(),
-        publicId: z.string(),
-    }),
-    cover: z.optional(
-        z.object({
-            url: z.string(),
-            publicId: z.string(),
-        })
-    ),
-    likes: z.array(z.custom<ObjectId>()),
-    category: CategoryValidationSchema,
-    })
+export const FileValidation = z.object({
+  url: z.string(),
+  publicId: z.string(),
+});
 
-export type AudioDocument = z.infer<typeof AudioValidation>;
+export type FileObject = z.infer<typeof FileValidation>;
+
+
+export const AudioValidation = z.object({
+  title: z.string(),
+  about: z.string(),
+  owner: z.custom<ObjectId>(),
+  likes: z.array(z.custom<ObjectId>()).optional(),
+  category: CategoryValidationSchema,
+})
+
+
+export const AudioValidationSchema = z.object({
+  body: AudioValidation
+})
+
+type BasicAudioDocument = z.infer<typeof AudioValidation>;
+
+export type AudioDocument<T = ObjectId> = BasicAudioDocument & {
+  _id: ObjectId;
+  owner: T;
+  file: FileObject;
+  cover?: FileObject;
+}
 
 const AudioSchema = new Schema<AudioDocument>(
   {

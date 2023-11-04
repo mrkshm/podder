@@ -154,6 +154,7 @@ export const updateProfile: RequestHandler = async (req: RequestWithFiles, res) 
   const { name } = req.body;
   const avatar = req.files?.avatar
 
+
   const user = await User.findById(req.user.id);
   if (!user) throw new Error("something went wrong, user not found")
 
@@ -167,7 +168,15 @@ export const updateProfile: RequestHandler = async (req: RequestWithFiles, res) 
       await cloudinary.uploader.destroy(user.avatar?.publicId);
     }
 
-    const { secure_url, public_id } = await cloudinary.uploader.upload(avatar.filepath, {
+    let filepath: string | undefined;
+
+    if (Array.isArray(avatar)) {
+      filepath = avatar[0].filepath;
+    } else {
+      filepath = avatar.filepath;
+    }
+
+    const { secure_url, public_id } = await cloudinary.uploader.upload(filepath, {
       width: 300,
       height: 300,
       crop: "thumb",

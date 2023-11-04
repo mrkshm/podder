@@ -40,3 +40,8 @@ export const authenticate: RequestHandler = async (req, res, next) => {
 
   next();
 }
+
+export const isVerified: RequestHandler = async (req, res, next) => {
+  if (!req.user.verified) return res.status(403).json({ message: "You are not verified" });
+  next();
+}
