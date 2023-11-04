@@ -1,5 +1,95 @@
 import { RequestHandler } from "express";
 
-export const createPlaylist: RequestHandler = (req, res) => {
-  return res.status(200).json({ message: "Playlist created" });
+import { CreatePlaylistRequest } from "@/types/playlist";
+import AppError from "@/errors/app-error";
+import Audio from "@/models/audio";
+import Playlist from "@/models/playlist";
+import { isValidObjectId } from "mongoose";
+
+export const createPlaylist: RequestHandler = async (req: CreatePlaylistRequest, res) => {
+  const { title, resId, visibility } = req.body;
+  const ownerId = req.user.id;
+
+
+  if (resId) {
+    const audio = await Audio.findById(resId);
+    if (!audio) throw new AppError("Audio not found", 404);
+  }
+
+  const newPlaylist = new Playlist({
+    title,
+    owner: ownerId,
+    visibility
+  });
+
+  if (resId) newPlaylist.items = [resId];
+  await newPlaylist.save();
+
+  return res.status(201).json({
+    playlist: {
+      id: newPlaylist._id,
+      title: newPlaylist.title,
+      visibility: newPlaylist.visibility
+    }
+  });
 };
+
+export const updatePlaylist: RequestHandler = async (req: CreatePlaylistRequest, res) => {
+  const { title, item, visibility } = req.body;
+  const { playlistId } = req.params;
+  const ownerId = req.user.id;
+
+  const playlist = await Playlist.findOneAndUpdate({ _id: playlistId, owner: ownerId }, { title, visibility }, { new: true });
+  if (!playlist) throw new AppError("Playlist not found", 404);
+
+  if (item) {
+    // in tutorial, get the audio, then refator to this 
+    const audioExists = await Audio.exists({ _id: item });
+    if (!audioExists) throw new AppError("Audio not found", 404);
+
+    await Playlist.findOneAndUpdate(
+      { _id: playlistId, owner: ownerId },
+      { $addToSet: { items: item } },
+      { new: true });
+  }
+
+  return res.status(200).json({
+    playlist: {
+      id: playlist._id,
+      title: playlist.title,
+      visibility: playlist.visibility
+    }
+  });
+};
+
+export const deletePlaylist: RequestHandler = async (req, res) => {
+  const { playlistId } = req.params;
+
+  if (!isValidObjectId(playlistId)) throw new AppError("Invalid Playlist Id", 422);
+
+  const playlist = await Playlist.findOneAndDelete({ _id: playlistId, owner: req.user.id });
+  if (!playlist) throw new AppError("Playlist not found", 404);
+
+  return res.status(200).json({ success: true, message: "Playlist deleted" });
+};
+
+export const removeFromPlaylist: RequestHandler = async (req, res) => {
+  const { playlistId, resId } = req.params;
+  if (!isValidObjectId(playlistId)) throw new AppError("Playlist Id is invalid", 422);
+  if (!isValidObjectId(resId)) throw new AppError("resId is invalid", 422);
+
+  const playlist = await Playlist.findOneAndUpdate({
+    _id: playlistId,
+    owner: req.user.id
+  }, {
+    $pull: { items: resId }
+  }, { new: true });
+
+  if (!playlist) throw new AppError("Playlist not found", 404);
+
+  return res.status(200).json({
+    success: true,
+    message: "Item removed from playlist successfully",
+    updatedPlaylist: playlist
+  });
+}

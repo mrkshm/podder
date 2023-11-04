@@ -5,6 +5,7 @@ export const PlaylistValidationSchema = z.object({
   title: z.string(),
   visibility: z.enum(["public", "private", "auto"]),
   resId: z.custom<ObjectId>().optional(),
+  item: z.custom<ObjectId>().optional(),
 });
 
 export type PlaylistDocument = z.infer<typeof PlaylistValidationSchema> & {
