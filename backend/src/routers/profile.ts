@@ -1,11 +1,11 @@
 import Router from "express";
 
 import { getPlaylistsForProfile } from "@/controllers/profile";
-import { authenticate } from "@/middleware/auth";
+import { authenticate, isVerified } from "@/middleware/auth";
 import { catchAsync } from "@/middleware/catch-async";
 
 const router = Router();
 
-router.get('/:profileId/playlists', authenticate, catchAsync(getPlaylistsForProfile));
+router.get('/playlists', authenticate, isVerified, catchAsync(getPlaylistsForProfile));
 
 export default router;

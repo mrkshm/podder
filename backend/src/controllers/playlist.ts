@@ -2,9 +2,9 @@ import { RequestHandler } from "express";
 
 import { CreatePlaylistRequest } from "@/types/playlist";
 import AppError from "@/errors/app-error";
-import Audio from "@/models/audio";
+import Audio, { AudioDocument } from "@/models/audio";
 import Playlist from "@/models/playlist";
-import { isValidObjectId } from "mongoose";
+import { ObjectId, isValidObjectId } from "mongoose";
 
 export const createPlaylist: RequestHandler = async (req: CreatePlaylistRequest, res) => {
   const { title, resId, visibility } = req.body;
@@ -93,3 +93,42 @@ export const removeFromPlaylist: RequestHandler = async (req, res) => {
     updatedPlaylist: playlist
   });
 }
+
+export const getPlaylist: RequestHandler = async (req, res) => {
+  const { playlistId } = req.params;
+  if (!isValidObjectId(playlistId)) throw new AppError("Invalid Playlist Id", 422);
+
+  const playlist = await Playlist.findOne({
+    _id: playlistId,
+    owner: req.user.id
+  }).populate<{ items: AudioDocument<{ id: ObjectId, name: string }>[] }>({
+    path: "items",
+    populate: {
+      path: "owner",
+      select: "name"
+    }
+  });
+  if (!playlist) throw new AppError("Playlist not found", 404);
+
+  const audios = playlist.items.map((item) => {
+    return {
+      id: item._id,
+      title: item.title,
+      category: item.category,
+      file: item.file.url,
+      cover: item.cover?.url,
+      owner: {
+        name: item.owner.name,
+        id: item.owner.id
+      }
+    }
+  })
+
+  return res.status(200).json({
+    playlist: {
+      id: playlist._id,
+      title: playlist.title,
+      audios
+    }
+  });
+};
