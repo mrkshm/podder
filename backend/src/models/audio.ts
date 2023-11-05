@@ -30,6 +30,7 @@ export type AudioDocument<T = ObjectId> = BasicAudioDocument & {
   owner: T;
   file: FileObject;
   cover?: FileObject;
+  createdAt: Date;
 }
 
 const AudioSchema = new Schema<AudioDocument>(
